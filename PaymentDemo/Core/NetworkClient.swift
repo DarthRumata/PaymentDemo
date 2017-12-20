@@ -9,12 +9,17 @@
 import Foundation
 import Alamofire
 import ObjectMapper
+import Stripe
 
 private let basePath = "http://localhost:3000"
 
 struct NetworkClient {
 
   static let instance = NetworkClient(basePath: basePath)
+
+  var keyProvider: KeyProvider {
+    return KeyProvider(pathBuilder: pathBuilder)
+  }
 
   private let pathBuilder: PathBuilder
   private let parser = ResponseParser()
@@ -50,46 +55,27 @@ struct NetworkClient {
     }
   }
 
-  func getToken(for user: User, completion: @escaping (String?) -> Void) {
-    sessionManager.request(pathBuilder.tokenURL, parameters: ["customer_id": user.id], encoding: URLEncoding.queryString).responseJSON { (response) in
-      switch response.result {
-      case .success(let value):
-        do {
-          let data = try self.parser.parse(value: value)
-          completion(data["token"] as? String)
-        } catch (let error) {
-          print(error)
+
+  func createCharge(for user: User, withAmount amount: Int, source: STPSourceProtocol, completion: @escaping (Error?) -> Void) {
+    sessionManager.request(
+      pathBuilder.paymentsURL(withCustomerId: user.id),
+      method: .post,
+      parameters: [
+        "source": source.stripeID,
+        "amount": amount
+      ],
+      encoding: JSONEncoding.default)
+      .validate(statusCode: 200..<300)
+      .responseJSON { (response) in
+        switch response.result {
+        case .success(let value):
           completion(nil)
-        }
+          print(value)
 
-        print(value)
-
-      case .failure(let error):
-        completion(nil)
-        print(error)
-      }
-    }
-  }
-
-  func sendNonce(_ nonce: String, for user: User, withAmount amount: Float, completion: @escaping (Bool) -> Void) {
-    sessionManager.request(pathBuilder.paymentsURL(withCustomerId: user.id), method: .post, parameters: ["nonce": nonce, "amount": amount], encoding: JSONEncoding.default).responseJSON { (response) in
-      switch response.result {
-      case .success(let value):
-        do {
-          let data = try self.parser.parse(value: value)
-          print(data)
-          completion(true)
-        } catch (let error) {
+        case .failure(let error):
+          completion(error)
           print(error)
-          completion(false)
         }
-
-        print(value)
-
-      case .failure(let error):
-        completion(false)
-        print(error)
-      }
     }
   }
 
@@ -161,20 +147,16 @@ struct NetworkClient {
     sessionManager.request(pathBuilder.refundTransactionURL(with: transaction.id), method: .post).responseJSON { (response) in
       switch response.result {
       case .success(let value):
-        do {
-          let data = try self.parser.parse(value: value)
-          completion(true)
-        } catch (let error) {
-          completion(false)
-        }
-
+        completion(true)
         print(value)
 
-      case .failure(let error):
+      case .failure(_):
         completion(false)
       }
     }
   }
+
+
 
 }
 
@@ -213,24 +195,24 @@ struct PathBuilder {
     self.serverURL = serverURL
   }
 
-  var braintreeURL: URL {
-    return serverURL.appendingPathComponent("braintree")
+  var stripeURL: URL {
+    return serverURL.appendingPathComponent("stripe")
   }
 
   var customerURL: URL {
-    return braintreeURL.appendingPathComponent("customer")
+    return stripeURL.appendingPathComponent("customer")
   }
 
   func refundTransactionURL(with transationId: String) -> URL {
-    return braintreeURL.appendingPathComponent("transaction").appendingPathComponent(transationId).appendingPathComponent("refund")
+    return stripeURL.appendingPathComponent("transaction").appendingPathComponent(transationId).appendingPathComponent("refund")
   }
 
   var tokenURL: URL {
-    return braintreeURL.appendingPathComponent("token")
+    return stripeURL.appendingPathComponent("token")
   }
 
   func paymentsURL(withCustomerId id: String) -> URL {
-    return customerURL.appendingPathComponent(id).appendingPathComponent("payments")
+    return customerURL.appendingPathComponent(id).appendingPathComponent("charge")
   }
 
   func paymentMethodURL(withCustomerId id: String) -> URL {
@@ -244,5 +226,31 @@ struct PathBuilder {
   func transactionsURL(withCustomerId id: String) -> URL {
     return customerURL.appendingPathComponent(id).appendingPathComponent("transactions")
   }
-  
+
+}
+
+class KeyProvider: NSObject, STPEphemeralKeyProvider {
+
+  private let pathBuilder: PathBuilder
+
+  init(pathBuilder: PathBuilder) {
+    self.pathBuilder = pathBuilder
+  }
+
+  func createCustomerKey(withAPIVersion apiVersion: String, completion: @escaping STPJSONResponseCompletionBlock) {
+    let user = User.current()!
+    Alamofire.request(pathBuilder.tokenURL, method: .post, parameters: [
+      "api_version": apiVersion,
+      "customer_id": user.id
+      ])
+      .validate(statusCode: 200..<300)
+      .responseJSON { responseJSON in
+        switch responseJSON.result {
+        case .success(let json):
+          completion(json as? [String: AnyObject], nil)
+        case .failure(let error):
+          completion(nil, error)
+        }
+    }
+  }
 }

@@ -16,7 +16,6 @@ class User: Object {
   @objc dynamic var lastName: String = ""
   @objc dynamic var company: String = ""
   @objc dynamic var email: String = ""
-  @objc dynamic var token: String = ""
 
   override static func primaryKey() -> String? {
     return "id"

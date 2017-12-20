@@ -14,5 +14,6 @@ target 'PaymentDemo' do
   pod 'SwiftMessages', '3.5.1'
   pod 'ObjectMapper', '~> 2.2'
   pod 'Kingfisher', '~> 3.13'
+  pod 'Stripe'
 
 end

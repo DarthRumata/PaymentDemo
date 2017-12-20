@@ -73,7 +73,7 @@
                                 <rect key="frame" x="167" y="436" width="41" height="30"/>
                                 <state key="normal" title="Cards"/>
                                 <connections>
-                                    <segue destination="b1i-kl-c0x" kind="show" identifier="showCards" id="dxm-Gq-r8W"/>
+                                    <action selector="showPaymentPicker:" destination="BYZ-38-t0r" eventType="touchUpInside" id="h7h-U1-YHl"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="U10-gW-juB">

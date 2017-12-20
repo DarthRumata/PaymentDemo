@@ -110,28 +110,11 @@ private extension CardListController {
   }
 
   func buy(with card: Card) {
-    tokenizeCard(card) { tokenizedCard in
-      NetworkClient.instance.sendNonce(tokenizedCard.nonce, for: self.user, withAmount: 10, completion: { (success) in
-        print(success)
-      })
-    }
+
   }
 
   func tokenizeCard(_ card: Card, completion: @escaping (BTCardNonce) -> Void) {
-    let braintreeClient = BTAPIClient(authorization: user.token)!
-    let cardClient = BTCardClient(apiClient: braintreeClient)
-    let cardInfo = BTCard(number: card.number, expirationMonth: String(card.month), expirationYear: String(card.year), cvv: nil)
-    cardClient.tokenizeCard(cardInfo) { (tokenizedCard, error) in
-      guard let tokenizedCard = tokenizedCard else {
-        if let error = error {
-          let error = MessageViewBuilder.makeError(with: error.localizedDescription)
-          SwiftMessages.show(view: error)
-        }
-        return
-      }
 
-      completion(tokenizedCard)
-    }
   }
   
 }

@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import Braintree
+import Stripe
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -17,15 +17,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
     // Override point for customization after application launch.
-    BTAppSwitch.setReturnURLScheme("yalantis.com.PaymentDemo.payments")
-    return true
-  }
+    STPPaymentConfiguration.shared().publishableKey = "pk_test_M0rsMLNpsExWVO6nokQBGwno"
 
-  func application(_ app: UIApplication, open url: URL, options: [UIApplicationOpenURLOptionsKey : Any]) -> Bool {
-    if url.scheme?.localizedCaseInsensitiveCompare("yalantis.com.PaymentDemo.payments") == .orderedSame {
-      return BTAppSwitch.handleOpen(url, options: options)
-    }
-    return false
+    return true
   }
 
   func applicationWillResignActive(_ application: UIApplication) {
